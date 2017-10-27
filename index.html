@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Flowdock Omni Search</title>
+		<script type="text/javascript">
+			function renderResults(resultsObject) {
+				var resultText = '';
+				for (var flowName in resultsObject) {
+					var flowText = `<ul><li>${flowName}<ul>`;
+					for (var messageIndex in resultsObject[flowName]) {
+						flowText += `<li>${resultsObject[flowName][messageIndex]}</li>`;
+					}
+					flowText += `</ul></li></ul>`;
+					resultText += flowText;
+				}
+				document.getElementById('results').innerHTML = resultText;
+			}
+
+			function processForm() {
+				var username = document.getElementById('user').value;
+				var password = document.getElementById('pass').value;
+				var query = document.getElementById('query').value;
+				var authString = username ? username + ':' + password : password;
+				var requestFlows = new XMLHttpRequest();
+				requestFlows.open("GET", "https://api.flowdock.com/flows/");
+				requestFlows.setRequestHeader("Accept", "application/json");
+				requestFlows.setRequestHeader("Content-Type", "application/json");
+				requestFlows.setRequestHeader("Authorization", `Basic ${btoa(authString)}`);
+				requestFlows.addEventListener("load", function() {
+					var resultsObject = {};
+					renderResults(resultsObject);
+					// Remember that `this` is bound onto the XHR.
+					var flowsArray = JSON.parse(this.responseText);
+					for (var flowIndex in flowsArray) {
+						var flowObject = flowsArray[flowIndex];
+						resultsObject[flowObject.name] = [];
+						var requestMessages = new XMLHttpRequest();
+						requestMessages.open("GET", `https://api.flowdock.com/flows/${flowObject.organization.parameterized_name}/${flowObject.parameterized_name}/messages/?search=${encodeURI(query)}`);
+						requestMessages.setRequestHeader("Accept", "application/json");
+						requestMessages.setRequestHeader("Content-Type", "application/json");
+						requestMessages.setRequestHeader("Authorization", `Basic ${btoa(authString)}`);
+						// Remember that `this` is bound onto the XHR.
+						requestMessages.addEventListener("load", function(flowObject) {
+							var messagesArray = JSON.parse(this.responseText);
+							for (var messageIndex in messagesArray) {
+								var messageObject = messagesArray[messageIndex];
+								resultsObject[flowObject.name].push(`<a href="https://www.flowdock.com/app/${flowObject.organization.parameterized_name}/${flowObject.parameterized_name}/threads/${messageObject.thread_id}" target="_blank">${messageObject.content}</a>`);
+							}
+							renderResults(resultsObject);
+						}.bind(requestMessages, flowObject));
+						requestMessages.send();
+					}
+					renderResults(resultsObject);
+				});
+				requestFlows.send();
+				return false;
+			}
+		</script>
+	</head>
+	<body>
+		<div><a href="https://flowdock.com/account/tokens" target="_blank">Get a token!</a></div>
+		<div><form>
+			<input type="text" id="user" placeholder="username (or blank)" />
+			<input type="password" id="pass" placeholder="password (or token)" />
+			<input type="text" id="query" placeholder="search term" />
+			<input type="button" value="search!" onclick="processForm()" />
+		</form></div>
+		<div id="results"></div>
+	</body>
+</html>
