@@ -1,2 +1,2 @@
 # FlowdockOmniSearch
-Search all Flowdock Flows
+Search all Flowdock Flows from a stand-alone HTML file.
