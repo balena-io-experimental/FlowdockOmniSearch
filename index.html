@@ -3,26 +3,60 @@
 	<head>
 		<meta charset="utf-8">
 		<title>Flowdock Omni Search</title>
+		<style>
+			body {
+				background: silver;
+			}
+
+			div#results>div {
+				max-width: 25em;
+				max-height: 10em;
+				overflow: scroll;
+				margin: 0.5em;
+				padding: 1em;
+				background: white;
+				flex-grow: 1;
+				border: 1px black solid;
+			}
+
+			div#results {
+				display: flex;
+				flex-wrap: wrap;
+				justify-content: space-between;
+			}
+
+			div#input>form {
+				margin: 0.5em;
+				padding: 1px;
+				background: white;
+				border: 1px black solid;
+			}
+
+			div#input div {
+				margin: 1em;
+			}
+
+		</style>
 		<script type="text/javascript">
 			function renderResults(resultsArray) {
 				var renderArray = [];
 				for (var resultIndex in resultsArray) {
 					var resultObject = resultsArray[resultIndex];
-					var messageUrl = `https://www.flowdock.com/app/${resultObject.orgId}/${resultObject.flowId}/threads/${resultObject.threadId}`;
+					var threadUrl = `https://www.flowdock.com/app/${resultObject.orgId}/${resultObject.flowParam}/threads/${resultObject.threadId}`;
 					var messageText = resultObject.text.replace(resultObject.highlight, '<b>$&</b>');
 					var messageTitle = resultObject.thread.replace(resultObject.highlight, '<b>$&</b>');
 					// <a href="${messageUrl}" target="_blank">
-					renderArray.push(`<tr><td>${resultObject.flow}</td><td>${messageTitle}</td><td>${messageText}</td></tr>`)
+					renderArray.push(`<div><div><i>${resultObject.flow}</i></div><div><i><a href="${threadUrl}" target="_blank">${messageTitle}</a></i></div><div><i>${resultObject.time}</i></div><div>${messageText}</div></div>`)
 				}
-				document.getElementById('results').innerHTML = `<table>${renderArray.join('')}</table>`;
+				document.getElementById('results').innerHTML = `${renderArray.join('')}`;
 			}
 
-			function renderStage(stageText) {
-				document.getElementById('stage').innerText = stageText;
+			function renderStatus(statusText) {
+				document.getElementById('status').innerText = statusText;
 			}
 
 			function processForm() {
-				renderStage('Submitted.');
+				renderStatus('Submitted.');
 				var username = document.getElementById('user').value;
 				var password = document.getElementById('pass').value;
 				var query = document.getElementById('query').value;
@@ -34,33 +68,42 @@
 				requestFlows.setRequestHeader("Content-Type", "application/json");
 				requestFlows.setRequestHeader("Authorization", `Basic ${btoa(authString)}`);
 				requestFlows.addEventListener("load", function() {
-					renderStage('Received flow list.');
-					var resultsArray = [];
 					// Remember that `this` is bound onto the XHR.
 					var flowsArray = JSON.parse(this.responseText);
+					renderStatus(`Received flow list. (0/${flowsArray.length})`);
+					var resultsArray = [];
+					var resultsReturned = 0;
 					for (var flowIndex in flowsArray) {
+						resultsReturned += 1;
 						var flowObject = flowsArray[flowIndex];
 						var requestMessages = new XMLHttpRequest();
-						requestMessages.open("GET", `https://api.flowdock.com/flows/${flowObject.organization.parameterized_name}/${flowObject.parameterized_name}/messages/?search=${encodeURI(query)}`);
+						requestMessages.open("GET", `https://api.flowdock.com/flows/${flowObject.organization.parameterized_name}/${flowObject.parameterized_name}/messages/?limit=100&search=${encodeURI(query)}`);
 						requestMessages.setRequestHeader("Accept", "application/json");
 						requestMessages.setRequestHeader("Content-Type", "application/json");
 						requestMessages.setRequestHeader("Authorization", `Basic ${btoa(authString)}`);
 						// Remember that `this` is bound onto the XHR.
 						requestMessages.addEventListener("load", function(flowObject, queryRegex) {
-							renderStage('Receiving search results.');
+							if (resultsReturned === flowsArray.length) {
+								renderStatus('Done.');
+							} else {
+								renderStatus(`Receiving search results. (${resultsReturned}/${flowsArray.length})`);
+							}
 							var messagesArray = JSON.parse(this.responseText);
 							for (var messageIndex in messagesArray) {
 								var messageObject = messagesArray[messageIndex];
-								if (typeof(messageObject.content) === 'string') {
+								if (typeof(messageObject.content) === 'string' && messageObject.thread && typeof(messageObject.thread.title) === 'string') {
 									resultsArray.push({
 										flow: flowObject.name,
 										thread: messageObject.thread.title,
 										text: messageObject.content,
 										timestamp: messageObject.sent,
+										time: messageObject.created_at,
 										orgId: flowObject.organization.parameterized_name,
-										flowId: flowObject.parameterized_name,
+										flowParam: flowObject.parameterized_name,
+										flowId: messageObject.flow,
 										threadId: messageObject.thread_id,
 										highlight: queryRegex,
+										msgId: messageObject.id,
 										raw: messageObject
 									});
 								}
@@ -77,12 +120,21 @@
 		</script>
 	</head>
 	<body>
-		<div id="stage"><a href="https://flowdock.com/account/tokens" target="_blank">Get a token!</a></div>
-		<div><form onsubmit="processForm(); return false;">
-			<input type="text" id="user" placeholder="username (or blank)" />
-			<input type="password" id="pass" placeholder="password (or token)" />
-			<input type="text" id="query" placeholder="search term" />
-			<input type="submit" value="search!" />
+		<div id="input"><form onsubmit="processForm(); return false;">
+			<div>
+				<input type="text" id="user" placeholder="username (or blank)" />
+			</div>
+			<div>
+				<input type="password" id="pass" placeholder="password (or token)" />
+				<span><a href="https://flowdock.com/account/tokens" target="_blank">(get a token)</a></span>
+			</div>
+			<div>
+				<input type="text" id="query" placeholder="search term" />
+				<input type="submit" value="search!" />
+			</div>
+			<div>
+				<span id="status">Enter search.</span>
+			</div>
 		</form></div>
 		<div id="results"></div>
 	</body>
