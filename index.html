@@ -57,16 +57,15 @@
 
 			function processForm() {
 				renderStatus('Submitted.');
-				var username = document.getElementById('user').value;
-				var password = document.getElementById('pass').value;
+				var token = document.getElementById('token').value;
 				var query = document.getElementById('query').value;
 				var queryRegex = new RegExp(query.split(/\s+/g).join('|'), 'gi');
-				var authString = username ? username + ':' + password : password;
+				var authString = `Basic ${btoa(token)}`;
 				var requestFlows = new XMLHttpRequest();
 				requestFlows.open("GET", "https://api.flowdock.com/flows/");
 				requestFlows.setRequestHeader("Accept", "application/json");
 				requestFlows.setRequestHeader("Content-Type", "application/json");
-				requestFlows.setRequestHeader("Authorization", `Basic ${btoa(authString)}`);
+				requestFlows.setRequestHeader("Authorization", authString);
 				requestFlows.addEventListener("load", function() {
 					// Remember that `this` is bound onto the XHR.
 					var flowsArray = JSON.parse(this.responseText);
@@ -80,7 +79,7 @@
 						requestMessages.open("GET", `https://api.flowdock.com/flows/${flowObject.organization.parameterized_name}/${flowObject.parameterized_name}/messages/?limit=100&search=${encodeURI(query)}`);
 						requestMessages.setRequestHeader("Accept", "application/json");
 						requestMessages.setRequestHeader("Content-Type", "application/json");
-						requestMessages.setRequestHeader("Authorization", `Basic ${btoa(authString)}`);
+						requestMessages.setRequestHeader("Authorization", authString);
 						// Remember that `this` is bound onto the XHR.
 						requestMessages.addEventListener("load", function(flowObject, queryRegex) {
 							if (resultsReturned === flowsArray.length) {
@@ -122,10 +121,7 @@
 	<body>
 		<div id="input"><form onsubmit="processForm(); return false;">
 			<div>
-				<input type="text" id="user" placeholder="username (or blank)" />
-			</div>
-			<div>
-				<input type="password" id="pass" placeholder="password (or token)" />
+				<input type="password" id="token" placeholder="token" />
 				<a href="https://flowdock.com/account/tokens" target="_blank">get a token</a>
 			</div>
 			<div>
