@@ -69,7 +69,7 @@
 				requestFlows.addEventListener("load", function() {
 					// Remember that `this` is bound onto the XHR.
 					var flowsArray = JSON.parse(this.responseText);
-					renderStatus(`Received flow list. (0/${flowsArray.length})`);
+					renderStatus(`Received flow list, querying. (0/${flowsArray.length})`);
 					var resultsArray = [];
 					var resultsReturned = 0;
 					for (var flowIndex in flowsArray) {
@@ -83,14 +83,16 @@
 						// Remember that `this` is bound onto the XHR.
 						requestMessages.addEventListener("load", function(flowObject, queryRegex) {
 							if (resultsReturned === flowsArray.length) {
-								renderStatus('Done.');
+								renderStatus('Received all results, rendering.');
 							} else {
 								renderStatus(`Receiving search results. (${resultsReturned}/${flowsArray.length})`);
 							}
 							var messagesArray = JSON.parse(this.responseText);
 							for (var messageIndex in messagesArray) {
 								var messageObject = messagesArray[messageIndex];
-								if (typeof(messageObject.content) === 'string' && messageObject.thread && typeof(messageObject.thread.title) === 'string') {
+								var contentOK = (typeof(messageObject.content) === 'string') && messageObject.content.match(queryRegex).length > 0;
+								var titleOK = messageObject.thread && (typeof(messageObject.thread.title) === 'string');
+								if (contentOK && titleOK) {
 									resultsArray.push({
 										flow: flowObject.name,
 										thread: messageObject.thread.title,
