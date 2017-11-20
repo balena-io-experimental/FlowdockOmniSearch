@@ -9,20 +9,12 @@
 			}
 
 			div#results>div {
-				max-width: 25em;
 				max-height: 10em;
 				overflow: scroll;
 				margin: 0.5em;
 				padding: 1em;
 				background: white;
-				flex-grow: 1;
 				border: 1px black solid;
-			}
-
-			div#results {
-				display: flex;
-				flex-wrap: wrap;
-				justify-content: space-between;
 			}
 
 			div#input>form {
@@ -46,7 +38,7 @@
 					var messageText = resultObject.text.replace(resultObject.highlight, '<b>$&</b>');
 					var messageTitle = resultObject.thread.replace(resultObject.highlight, '<b>$&</b>');
 					// <a href="${messageUrl}" target="_blank">
-					renderArray.push(`<div><div><i>${resultObject.flow}</i></div><div><i><a href="${threadUrl}" target="_blank">${messageTitle}</a></i></div><div><i>${resultObject.time}</i></div><div>${messageText}</div></div>`)
+					renderArray.push(`<div><div><i>${resultObject.flow} ${resultObject.time} <a href="${threadUrl}" target="_blank">${messageTitle}</a></i></div><div>${messageText}</div></div>`)
 				}
 				document.getElementById('results').innerHTML = `${renderArray.join('')}`;
 			}
