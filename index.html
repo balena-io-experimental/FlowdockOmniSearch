@@ -28,8 +28,42 @@
 				margin: 1em;
 			}
 
+			div#input div>span {
+				padding-right: 0.5em;
+				padding-left: 0.5em;
+			}
+
+			div#input div>span:not(:first-child) {
+				border-left: 1px solid black;
+			}
+
 		</style>
 		<script type="text/javascript">
+			window.onload = function() {
+				const doStoreToken = localStorage.getItem('doStoreFDToken');
+				if (doStoreToken) {
+					document.getElementById('storeFlowdockToken').checked = true;
+					const storedToken = localStorage.getItem('FDToken');
+					if (storedToken) {
+						document.getElementById('token').value = storedToken;
+					}
+				}
+			}
+
+			function clearStoredToken() {
+				window.localStorage.removeItem('FDToken');
+				document.getElementById('token').value = '';
+			}
+
+			function toggleTokenStore(cb) {
+				if (cb.checked) {
+					window.localStorage.setItem('doStoreFDToken', true);
+				} else {
+					window.localStorage.removeItem('doStoreFDToken');
+					clearStoredToken()
+				}
+			}
+
 			function renderResults(resultsArray) {
 				var renderArray = [];
 				for (var resultIndex in resultsArray) {
@@ -109,18 +143,23 @@
 					}
 				});
 				requestFlows.send();
+				window.localStorage.setItem('FDToken', token);
 			}
 		</script>
 	</head>
 	<body>
 		<div id="input"><form onsubmit="processForm(); return false;">
 			<div>
-				<input type="password" id="token" placeholder="token" />
-				<a href="https://flowdock.com/account/tokens" target="_blank">get a token</a>
+				<span><input type="password" id="token" placeholder="token" /></span>
+				<span><a href="https://flowdock.com/account/tokens" target="_blank">get a token</a></span>
+				<span>
+					<input type="checkbox" id="storeFlowdockToken" onclick="toggleTokenStore(this);" />
+					<label for="storeFlowdockToken">save token</label>
+				</span>
 			</div>
 			<div>
-				<input type="text" id="query" placeholder="search term" />
-				<input type="submit" value="search!" />
+				<span><input type="text" id="query" placeholder="search term" /></span>
+				<span><input type="submit" value="search!" /></span>
 			</div>
 			<div>
 				<span id="status">Enter search.</span>
